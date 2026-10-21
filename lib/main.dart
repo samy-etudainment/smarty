@@ -1,9 +1,18 @@
 import 'package:ai_buddy/ai_buddy/edutainer.dart';
+import 'package:ai_buddy/audio/emotion_speaker.dart';
+import 'package:ai_buddy/audio/sfx_audio.dart';
 import 'package:flutter/material.dart';
 
-void main() => runApp(
-  const MaterialApp(debugShowCheckedModeBanner: false, home: DemoPage()),
-);
+import 'pages/sound_list_page.dart';
+
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await SfxPlayer.instance.init();
+  await EmotionSpeaker.instance.init();
+  runApp(
+    const MaterialApp(debugShowCheckedModeBanner: false, home: DemoPage()),
+  );
+}
 
 class DemoPage extends StatelessWidget {
   const DemoPage({super.key});
@@ -18,37 +27,71 @@ class DemoPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF3664A1),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            AiBudddyEdutainment(
-              size: 120,
-              emotion: EdutainerEmotion.normal,
+      body: Column(
+        children: [
+          Expanded(
+            child: Center(
+              child: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: const [
+                    AiBudddyEdutainment(
+                      size: 100,
+                      emotion: EdutainerEmotion.normal,
+                    ),
+                    AiBudddyEdutainment(
+                      size: 90,
+                      bodyColor: Colors.amber,
+                      saucerColor: Colors.deepOrangeAccent,
+                      emotion: EdutainerEmotion.sad,
+                    ),
+                    AiBudddyEdutainment(
+                      size: 90,
+                      bodyColor: Colors.purple,
+                      saucerColor: Colors.teal,
+                      emotion: EdutainerEmotion.love,
+                    ),
+                    AiBudddyEdutainment(
+                      size: 100,
+                      bodyColor: Colors.teal,
+                      saucerColor: Colors.blueAccent,
+                      speed: 1.5,
+                      showShadow: true,
+                      emotion: EdutainerEmotion.angry,
+                      targets: _targets,
+                    ),
+                  ],
+                ),
+              ),
             ),
-            const AiBudddyEdutainment(
-              size: 120,
-              bodyColor: Colors.amber,
-              saucerColor: Colors.deepOrangeAccent,
-              emotion: EdutainerEmotion.sad,
-              //pose: EdutainerPose(mouthOpen: 0, tongueOut: 0, mischief: 0),
-            ),
-            const AiBudddyEdutainment(
-              size: 150,
-              bodyColor: Colors.purple,
-              saucerColor: Colors.teal,
-              emotion: EdutainerEmotion.love
-            ),
-            const AiBudddyEdutainment(
-              size: 150,
-              bodyColor: Colors.teal,
-              saucerColor: Colors.blueAccent,
-              speed: 1.5,
-              showShadow: true,
-              emotion: EdutainerEmotion.normal,
-              targets: _targets,
-            ),
-          ],
+          ),
+          const _BottomBar(),
+        ],
+      ),
+    );
+  }
+}
+
+class _BottomBar extends StatelessWidget {
+  const _BottomBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        color: Colors.black26,
+        child: FilledButton.icon(
+          onPressed: () {
+            SfxPlayer.instance.play(Sfx.click);
+            Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const SoundListPage()),
+            );
+          },
+          icon: const Icon(Icons.library_music, size: 18),
+          label: const Text('Sound list'),
         ),
       ),
     );
