@@ -182,7 +182,7 @@ class SfxSynth {
 
 enum Wave { sine, square, saw, triangle }
 
-// The five game sounds.
+// Synthesized game and interface sounds.
 class GameSfx {
   // Bubble pop: a tiny soft click plus a quick rising "bloop" chirp.
   static Uint8List bubbleBurst() => SfxSynth.toWav(
@@ -235,6 +235,33 @@ class GameSfx {
 
   static Uint8List redBubbleForming() => SfxSynth.toWav(
     SfxSynth.sweep(startHz: 200, endHz: 650, seconds: 0.45, volume: 0.5),
+  );
+  
+  // Short, bright laser zap with a sharp attack and a fast falling pitch.
+  static Uint8List laser() => SfxSynth.toWav(
+    SfxSynth.mix([
+      SfxSynth.noise(seconds: 0.025, volume: 0.18),
+      SfxSynth.tone(
+        startHz: 1500,
+        endHz: 180,
+        seconds: 0.4,
+        volume: 0.32,
+        wave: Wave.saw,
+        attack: 0.002,
+        decay: 6,
+      ),
+      SfxSynth.delay(
+        SfxSynth.tone(
+          startHz: 3000,
+          endHz: 40,
+          seconds: 0.25,
+          volume: 0.15,
+          attack: 0.002,
+          decay: 7,
+        ),
+        0.015,
+      ),
+    ]),
   );
 
   // "Correct answer" chime: quick rising C-E-G arpeggio, last note rings.

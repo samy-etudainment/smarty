@@ -1,13 +1,13 @@
 import 'package:ai_buddy/ai_buddy/edutainer.dart';
 import 'package:ai_buddy/audio/emotion_speaker.dart';
-import 'package:ai_buddy/audio/sfx_audio.dart';
+import 'package:ai_buddy/audio_generation/sound_effect.dart';
 import 'package:flutter/material.dart';
 
 import 'pages/sound_list_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SfxPlayer.instance.init();
+  await SoundEffects.init(); 
   await EmotionSpeaker.instance.init();
   runApp(
     const MaterialApp(debugShowCheckedModeBanner: false, home: DemoPage()),
@@ -85,7 +85,7 @@ class _BottomBar extends StatelessWidget {
         color: Colors.black26,
         child: FilledButton.icon(
           onPressed: () {
-            SfxPlayer.instance.play(Sfx.click);
+            SoundEffects.play(Sfx.laser); 
             Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const SoundListPage()),
             );

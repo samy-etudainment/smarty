@@ -1,4 +1,4 @@
-import 'package:ai_buddy/audio/sfx_audio.dart';
+import 'package:ai_buddy/audio_generation/sound_effect.dart';
 import 'package:flutter/material.dart';
 
 import 'speech_page.dart';
@@ -12,12 +12,12 @@ class SoundListPage extends StatefulWidget {
 
 class _SoundListPageState extends State<SoundListPage> {
   // (sound, label, icon, loop)
-  // loop = true: tap to start, tap again to stop.
   static const _items = <(Sfx, String, IconData, bool)>[
     (Sfx.burst, 'Burst', Icons.bubble_chart, false),
     (Sfx.redForming, 'Red bubble forming', Icons.circle, false),
     (Sfx.beamIncorrect, 'Wrong Beam', Icons.close, false),
     (Sfx.beamCorrect, 'Correct Beam', Icons.check, false),
+    (Sfx.laser, 'Laser sound', Icons.call_split, false),
     (Sfx.split, 'Bubble Split', Icons.call_split, false),
     (Sfx.alert, 'Alert', Icons.notifications_active, true),
     (Sfx.click, 'Click', Icons.touch_app, false),
@@ -28,30 +28,19 @@ class _SoundListPageState extends State<SoundListPage> {
     (Sfx.popupClose, 'Pop-up Close', Icons.close_fullscreen, false),
   ];
 
-  // Sounds that must always play at the same pitch: musical cues and
-  // sounds whose direction (up/down) carries meaning.
-  static const _fixedPitch = {
-    Sfx.beamCorrect,
-    Sfx.beamIncorrect,
-    Sfx.switchOn,
-    Sfx.switchOff,
-    Sfx.popupOpen,
-    Sfx.popupClose,
-  };
-
   @override
   void dispose() {
-    // The player is a singleton, so stop the looping alert when leaving.
-    SfxPlayer.instance.stopLoop(Sfx.alert);
+    // Sounds are global, so stop the looping alert when leaving.
+    SoundEffects.stopLoop(Sfx.alert);
     super.dispose();
   }
 
   Future<void> _onTap(Sfx sfx, bool loop) async {
     if (loop) {
-      await SfxPlayer.instance.toggleLoop(sfx);
+      await SoundEffects.toggleLoop(sfx);
       if (mounted) setState(() {});
     } else {
-      SfxPlayer.instance.play(sfx, varyPitch: !_fixedPitch.contains(sfx));
+      SoundEffects.play(sfx); 
     }
   }
 
@@ -78,12 +67,12 @@ class _SoundListPageState extends State<SoundListPage> {
                   _SfxButton(
                     label: label,
                     icon: icon,
-                    active: loop && SfxPlayer.instance.isLooping(sfx),
+                    active: loop && SoundEffects.isLooping(sfx),
                     onPressed: () => _onTap(sfx, loop),
                   ),
                 FilledButton.icon(
                   onPressed: () {
-                    SfxPlayer.instance.play(Sfx.click);
+                    SoundEffects.play(Sfx.click);
                     Navigator.of(context).push(
                       MaterialPageRoute(builder: (_) => const SpeechPage()),
                     );
