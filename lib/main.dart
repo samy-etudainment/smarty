@@ -1,5 +1,5 @@
 import 'package:ai_buddy/ai_buddy/edutainer.dart';
-import 'package:ai_buddy/audio/emotion_speaker.dart';
+import 'package:ai_buddy/audio_emotion/emotion_speaker.dart';
 import 'package:ai_buddy/audio_generation/sound_effect.dart';
 import 'package:flutter/material.dart';
 

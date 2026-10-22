@@ -301,7 +301,7 @@ class GameSfx {
         wave: Wave.triangle,
         attack: 0.003,
         decay: 3,
-      ),
+      ), 
 
       // Sub weight for the "heavy" feel.
       SfxSynth.tone(

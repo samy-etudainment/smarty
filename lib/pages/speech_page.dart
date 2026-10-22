@@ -1,4 +1,4 @@
-import 'package:ai_buddy/audio/emotion_speaker.dart';
+import 'package:ai_buddy/audio_emotion/emotion_speaker.dart';
 import 'package:flutter/material.dart';
 
 class SpeechPage extends StatefulWidget {
