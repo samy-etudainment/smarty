@@ -1,4 +1,4 @@
-import 'package:flutter_tts/flutter_tts.dart';
+/*import 'package:flutter_tts/flutter_tts.dart';
 
 enum Intonation {
   normal('Normal', 0.45, 1.0),
@@ -52,4 +52,4 @@ class EmotionSpeaker {
   }
 
   Future<void> stop() => _tts.stop();
-}
+}*/

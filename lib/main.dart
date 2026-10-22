@@ -1,5 +1,5 @@
+import 'dart:async';
 import 'package:ai_buddy/ai_buddy/edutainer.dart';
-import 'package:ai_buddy/audio_emotion/emotion_speaker.dart';
 import 'package:ai_buddy/audio_generation/sound_effect.dart';
 import 'package:flutter/material.dart';
 
@@ -7,11 +7,18 @@ import 'pages/sound_list_page.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SoundEffects.init(); 
-  await EmotionSpeaker.instance.init();
   runApp(
     const MaterialApp(debugShowCheckedModeBanner: false, home: DemoPage()),
   );
+  unawaited(_initAudio());
+}
+
+Future<void> _initAudio() async {
+  try {
+    await SoundEffects.init().timeout(const Duration(seconds: 5));
+  } catch (e) {
+    debugPrint('Audio init failed: $e');
+  }
 }
 
 class DemoPage extends StatelessWidget {
@@ -85,10 +92,9 @@ class _BottomBar extends StatelessWidget {
         color: Colors.black26,
         child: FilledButton.icon(
           onPressed: () {
-            SoundEffects.play(Sfx.laser); 
-            Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const SoundListPage()),
-            );
+            SoundEffects.play(Sfx.laser);
+            Navigator.of(context)
+                .push(MaterialPageRoute(builder: (_) => const SoundListPage()));
           },
           icon: const Icon(Icons.library_music, size: 18),
           label: const Text('Sound list'),

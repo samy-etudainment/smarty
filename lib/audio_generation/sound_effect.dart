@@ -1,10 +1,13 @@
+// sound_effect.dart
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
+
+import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/foundation.dart';
+
 import 'sfx_generate.dart';
-import 'package:flutter_soloud/flutter_soloud.dart';
 
-
-// Every available sound, with its default volume and pitch behaviour
 enum Sfx {
   burst,
   beamIncorrect(varyPitch: false),
@@ -21,7 +24,6 @@ enum Sfx {
   popupClose(varyPitch: false);
 
   const Sfx({this.volume = 1.0, this.varyPitch = true});
-
   final double volume;
   final bool varyPitch;
 }
@@ -29,12 +31,16 @@ enum Sfx {
 class SoundEffects {
   SoundEffects._();
 
-  static final _sources = <Sfx, AudioSource>{};
-  static final _loops = <Sfx, SoundHandle>{};
+  static const _poolSize = 6;
+
+  static final _bytes = <Sfx, Uint8List>{};
+  static final _loops = <Sfx, AudioPlayer>{};
+  static final _pool = <AudioPlayer>[];
   static final _rnd = math.Random();
   static Future<void>? _initFuture;
   static bool _ready = false;
   static int _lastTick = 0;
+  static int _next = 0;
 
   static bool enabled = true;
 
@@ -54,46 +60,46 @@ class SoundEffects {
     Sfx.popupClose: GameSfx.popupClose,
   };
 
-  // Call once at startup. Safe to call several times.
   static Future<void> init({Set<Sfx>? only}) =>
       _initFuture ??= _init(only ?? Sfx.values.toSet()).catchError((Object e) {
-        _initFuture = null; // allow a retry after a failure
+        _initFuture = null;
         throw e;
       });
 
   static Future<void> _init(Set<Sfx> wanted) async {
-    await SoLoud.instance.init();
     for (final sfx in wanted) {
-      final bytes = _builders[sfx]!();
-      _sources[sfx] = await SoLoud.instance.loadMem('${sfx.name}.wav', bytes);
+      _bytes[sfx] = _builders[sfx]!();
+    }
+    for (var i = 0; i < _poolSize; i++) {
+      final p = AudioPlayer();
+      await p.setPlayerMode(PlayerMode.mediaPlayer);
+      await p.setReleaseMode(ReleaseMode.stop);
+      _pool.add(p);
     }
     _ready = true;
   }
 
-  // Plays a one-shot sound
   static Future<void> play(Sfx sfx, {double? volume, bool? varyPitch}) async {
     if (!enabled || !_ready) return;
-    final source = _sources[sfx];
-    if (source == null) return;
+    final bytes = _bytes[sfx];
+    if (bytes == null) return;
 
     try {
-      final handle = await SoLoud.instance.play(
-        source,
-        volume: volume ?? sfx.volume,
-        paused: true,
-      );
+      final p = _pool[_next];
+      _next = (_next + 1) % _pool.length;
+      await p.stop();
+      await p.setVolume(volume ?? sfx.volume);
       if (varyPitch ?? sfx.varyPitch) {
-        SoLoud.instance.setRelativePlaySpeed(
-          handle,
-          0.92 + _rnd.nextDouble() * 0.16,
-        );
+        await p.setPlaybackRate(0.92 + _rnd.nextDouble() * 0.16);
+      } else {
+        await p.setPlaybackRate(1.0);
       }
-      SoLoud.instance.setPause(handle, false);
-    } catch (_) {
+      await p.play(BytesSource(bytes));
+    } catch (e) {
+      debugPrint('SFX play failed ($sfx): $e');
     }
   }
 
-  // Scroll/slider tick
   static void tick({int minGapMs = 45}) {
     final now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastTick < minGapMs) return;
@@ -101,34 +107,33 @@ class SoundEffects {
     play(Sfx.tick);
   }
 
-  // Looping sounds
-
+  // Loops
   static bool isLooping(Sfx sfx) => _loops.containsKey(sfx);
 
   static Future<void> startLoop(Sfx sfx, {double? volume}) async {
     if (!enabled || !_ready || _loops.containsKey(sfx)) return;
-    final source = _sources[sfx];
-    if (source == null) return;
+    final bytes = _bytes[sfx];
+    if (bytes == null) return;
     try {
-      _loops[sfx] = await SoLoud.instance.play(
-        source,
-        volume: volume ?? sfx.volume,
-        looping: true,
-      );
-    } catch (_) {}
-  }
-
-  static Future<void> stopLoop(Sfx sfx) async {
-    final handle = _loops.remove(sfx);
-    if (handle == null) return;
-    try {
-      await SoLoud.instance.stop(handle);
+      final p = AudioPlayer();
+      _loops[sfx] = p;
+      await p.setReleaseMode(ReleaseMode.loop);
+      await p.setVolume(volume ?? sfx.volume);
+      await p.play(BytesSource(bytes));
     } catch (_) {
-      // already stopped
+      _loops.remove(sfx);
     }
   }
 
-  // Starts the loop if stopped, stops it if running. Returns the new state.
+  static Future<void> stopLoop(Sfx sfx) async {
+    final p = _loops.remove(sfx);
+    if (p == null) return;
+    try {
+      await p.stop();
+      await p.dispose();
+    } catch (_) {}
+  }
+
   static Future<bool> toggleLoop(Sfx sfx, {double? volume}) async {
     if (isLooping(sfx)) {
       await stopLoop(sfx);
@@ -146,11 +151,11 @@ class SoundEffects {
 
   static Future<void> dispose() async {
     await stopAllLoops();
-    for (final s in _sources.values) {
-      await SoLoud.instance.disposeSource(s);
+    for (final p in _pool) {
+      await p.dispose();
     }
-    _sources.clear();
-    if (_ready) SoLoud.instance.deinit();
+    _pool.clear();
+    _bytes.clear();
     _ready = false;
     _initFuture = null;
   }

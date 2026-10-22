@@ -1,8 +1,6 @@
 import 'package:ai_buddy/audio_generation/sound_effect.dart';
 import 'package:flutter/material.dart';
 
-import 'speech_page.dart';
-
 class SoundListPage extends StatefulWidget {
   const SoundListPage({super.key});
 
@@ -70,16 +68,6 @@ class _SoundListPageState extends State<SoundListPage> {
                     active: loop && SoundEffects.isLooping(sfx),
                     onPressed: () => _onTap(sfx, loop),
                   ),
-                FilledButton.icon(
-                  onPressed: () {
-                    SoundEffects.play(Sfx.click);
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const SpeechPage()),
-                    );
-                  },
-                  icon: const Icon(Icons.record_voice_over, size: 18),
-                  label: const Text('Text to speech'),
-                ),
               ],
             ),
           ),
