@@ -1,13 +1,14 @@
-// sound_effect.dart
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 
+import 'package:ai_buddy/audio_emotion/emotion_speaker.dart';
+import 'package:ai_buddy/audio_generation/game_audio.dart';
 import 'package:audioplayers/audioplayers.dart';
-import 'package:flutter/foundation.dart';
-
+import 'package:flutter/foundation.dart' show debugPrint;
 import 'sfx_generate.dart';
 
+// Every available sound, with its default volume and pitch behaviour
 enum Sfx {
   burst,
   beamIncorrect(varyPitch: false),
@@ -21,9 +22,24 @@ enum Sfx {
   switchOff(varyPitch: false),
   tick(volume: 0.6),
   popupOpen(varyPitch: false),
-  popupClose(varyPitch: false);
+  popupClose(varyPitch: false),
+
+  // Game
+  splash(varyPitch: false),
+  gameMusic(volume: 0.35, varyPitch: false),
+
+  // Emotions
+  veryHappy(varyPitch: false),
+  veryDisappointed(varyPitch: false),
+  angry(varyPitch: false),
+  verySurprised(varyPitch: false),
+  excited(varyPitch: false),
+  satisfied(varyPitch: false),
+  stressed(varyPitch: false),
+  proud(varyPitch: false);
 
   const Sfx({this.volume = 1.0, this.varyPitch = true});
+
   final double volume;
   final bool varyPitch;
 }
@@ -58,11 +74,26 @@ class SoundEffects {
     Sfx.tick: GameSfx.tick,
     Sfx.popupOpen: GameSfx.popupOpen,
     Sfx.popupClose: GameSfx.popupClose,
+
+    // Game
+    Sfx.splash: SplashSfx.splash,
+    Sfx.gameMusic: GameMusic.cartoonLoop,
+
+    // Emotions
+    Sfx.veryHappy: EmotionSfx.veryHappy,
+    Sfx.veryDisappointed: EmotionSfx.veryDisappointed,
+    Sfx.angry: EmotionSfx.angry,
+    Sfx.verySurprised: EmotionSfx.verySurprised,
+    Sfx.excited: EmotionSfx.excited,
+    Sfx.satisfied: EmotionSfx.satisfied,
+    Sfx.stressed: EmotionSfx.stressed,
+    Sfx.proud: EmotionSfx.proud,
   };
 
+  // Call once at startup. Safe to call several times.
   static Future<void> init({Set<Sfx>? only}) =>
       _initFuture ??= _init(only ?? Sfx.values.toSet()).catchError((Object e) {
-        _initFuture = null;
+        _initFuture = null; // allow a retry after a failure
         throw e;
       });
 
@@ -72,13 +103,14 @@ class SoundEffects {
     }
     for (var i = 0; i < _poolSize; i++) {
       final p = AudioPlayer();
-      await p.setPlayerMode(PlayerMode.mediaPlayer);
+      await p.setPlayerMode(PlayerMode.mediaPlayer); // BytesSource needs this
       await p.setReleaseMode(ReleaseMode.stop);
       _pool.add(p);
     }
     _ready = true;
   }
 
+  // Plays a one-shot sound (round-robin over a small player pool).
   static Future<void> play(Sfx sfx, {double? volume, bool? varyPitch}) async {
     if (!enabled || !_ready) return;
     final bytes = _bytes[sfx];
@@ -100,6 +132,7 @@ class SoundEffects {
     }
   }
 
+  // Scroll/slider tick
   static void tick({int minGapMs = 45}) {
     final now = DateTime.now().millisecondsSinceEpoch;
     if (now - _lastTick < minGapMs) return;
@@ -107,7 +140,8 @@ class SoundEffects {
     play(Sfx.tick);
   }
 
-  // Loops
+  // Looping sounds (one dedicated player per looping sound)
+
   static bool isLooping(Sfx sfx) => _loops.containsKey(sfx);
 
   static Future<void> startLoop(Sfx sfx, {double? volume}) async {
@@ -116,11 +150,13 @@ class SoundEffects {
     if (bytes == null) return;
     try {
       final p = AudioPlayer();
-      _loops[sfx] = p;
+      _loops[sfx] = p; // register first so a double tap can't start two
+      await p.setPlayerMode(PlayerMode.mediaPlayer); // BytesSource needs this
       await p.setReleaseMode(ReleaseMode.loop);
       await p.setVolume(volume ?? sfx.volume);
       await p.play(BytesSource(bytes));
-    } catch (_) {
+    } catch (e) {
+      debugPrint('SFX loop failed ($sfx): $e');
       _loops.remove(sfx);
     }
   }
@@ -131,9 +167,12 @@ class SoundEffects {
     try {
       await p.stop();
       await p.dispose();
-    } catch (_) {}
+    } catch (_) {
+      // already stopped
+    }
   }
 
+  // Starts the loop if stopped, stops it if running. Returns the new state.
   static Future<bool> toggleLoop(Sfx sfx, {double? volume}) async {
     if (isLooping(sfx)) {
       await stopLoop(sfx);

@@ -26,10 +26,28 @@ class _SoundListPageState extends State<SoundListPage> {
     (Sfx.popupClose, 'Pop-up Close', Icons.close_fullscreen, false),
   ];
 
+  static const _game = <(Sfx, String, IconData, bool)>[
+    (Sfx.splash, 'Game Start', Icons.rocket_launch, false),
+    (Sfx.gameMusic, 'Game music', Icons.music_note, true),
+  ];
+
+  /*static const _emotions = <(Sfx, String, IconData, bool)>[
+    (Sfx.veryHappy, 'Very Happy', Icons.sentiment_very_satisfied, false),
+    (Sfx.veryDisappointed, 'Very Disappointed', Icons.sentiment_very_dissatisfied, false),
+    (Sfx.angry, 'Angry / Frustrated', Icons.whatshot, false),
+    (Sfx.verySurprised, 'Very Surprised', Icons.flash_on, false),
+    (Sfx.excited, 'Excited / Energetic', Icons.bolt, false),
+    (Sfx.satisfied, 'Satisfied / Relaxed', Icons.spa, false),
+    (Sfx.stressed, 'Stressed / Rushed', Icons.timer, true),
+    (Sfx.proud, 'Proud / Triumphant', Icons.emoji_events, false),
+  ];*/
+
   @override
   void dispose() {
-    // Sounds are global, so stop the looping alert when leaving.
+    // Sounds are global, so stop looping sounds when leaving.
     SoundEffects.stopLoop(Sfx.alert);
+    SoundEffects.stopLoop(Sfx.stressed);
+    SoundEffects.stopLoop(Sfx.gameMusic);
     super.dispose();
   }
 
@@ -38,8 +56,41 @@ class _SoundListPageState extends State<SoundListPage> {
       await SoundEffects.toggleLoop(sfx);
       if (mounted) setState(() {});
     } else {
-      SoundEffects.play(sfx); 
+      SoundEffects.play(sfx);
     }
+  }
+
+  Widget _section(String title, List<(Sfx, String, IconData, bool)> items) {
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.only(top: 16, bottom: 8),
+          child: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white70,
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+        Wrap(
+          alignment: WrapAlignment.center,
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final (sfx, label, icon, loop) in items)
+              _SfxButton(
+                label: label,
+                icon: icon,
+                active: loop && SoundEffects.isLooping(sfx),
+                onPressed: () => _onTap(sfx, loop),
+              ),
+          ],
+        ),
+      ],
+    );
   }
 
   @override
@@ -56,18 +107,11 @@ class _SoundListPageState extends State<SoundListPage> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Center(
-            child: Wrap(
-              alignment: WrapAlignment.center,
-              spacing: 8,
-              runSpacing: 8,
+            child: Column(
               children: [
-                for (final (sfx, label, icon, loop) in _items)
-                  _SfxButton(
-                    label: label,
-                    icon: icon,
-                    active: loop && SoundEffects.isLooping(sfx),
-                    onPressed: () => _onTap(sfx, loop),
-                  ),
+                _section('GAME & UI', _items),
+                _section('GAME AUDIO', _game),
+                //_section('EMOTIONS', _emotions),
               ],
             ),
           ),
